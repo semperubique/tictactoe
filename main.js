@@ -1,103 +1,101 @@
-const gameBoard = (() => {
-    let gameBoardArray = ["","","","","","","","",""];
+const createPlayer = (name, marker) => {
+    return {name, marker};
+}
 
-    const mark = (sideChoice, indexOfMark) => {
-            if(gameBoardArray[indexOfMark-1] === ""){
-                gameBoardArray[indexOfMark-1]=sideChoice; 
-                return true;
-            }
-            else {
-                return false;
-            }
-    };
+const game = (() => {
+    const playerOne = createPlayer('Player 1', 'x');
+    const playerTwo = createPlayer('Player 2', 'o');
 
-    const testIfGameEnded = () => {
-        if(gameBoardArray[0] !== "" && (gameBoardArray[0] === gameBoardArray[1] && gameBoardArray[1] === gameBoardArray[2])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[3] !== "" && (gameBoardArray[3] === gameBoardArray[4] && gameBoardArray[4] === gameBoardArray[5])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[6] !== "" && (gameBoardArray[6] === gameBoardArray[7] && gameBoardArray[7] === gameBoardArray[8])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[0] !== "" && (gameBoardArray[0] === gameBoardArray[3] && gameBoardArray[3] === gameBoardArray[6])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[1] !== "" && (gameBoardArray[1] === gameBoardArray[4] && gameBoardArray[4] === gameBoardArray[7])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[2] !== "" && (gameBoardArray[2] === gameBoardArray[5] && gameBoardArray[5] === gameBoardArray[8])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[0] !== "" && (gameBoardArray[0] === gameBoardArray[4] && gameBoardArray[4] === gameBoardArray[8])) {
-            console.log('END');
-        }
-        else if(gameBoardArray[2] !== "" && (gameBoardArray[2] === gameBoardArray[4] && gameBoardArray[4] === gameBoardArray[6])) {
-            console.log('END');
-        }
+    let activePlayer = playerOne;
+    let winnerDeclared = false;
+    let remainingSpots = 9;
+
+    let subtext = document.querySelector('.subtext'); 
+    let playerName = document.querySelector('.player-name');
+
+    const winningAxes = [
+        [0,1,2],
+        [3,4,5],
+        [6,7,8],
+        [0,3,6],
+        [1,4,7],
+        [2,5,8],
+        [0,4,8],
+        [2,4,6],
+    ];
+
+    function checkWinner() {
+        winningAxes.forEach((item) => {
+            if (gameBoard.board[item[0]] === this.activePlayer.marker && gameBoard.board[item[1]] === this.activePlayer.marker && gameBoard.board[item[2]] === this.activePlayer.marker) {
+                subtext.innerHTML = `<b>${this.activePlayer.name} wins!</b>`;
+                this.winnerDeclared = true;
+            } 
+        })
     }
 
-    const waitForMarking = (player1, player2) => {
-        const markPlaces = document.querySelectorAll(".mark-place");
+    function alertNextPlayer() {
+        this.activePlayer === playerOne ? playerName.textContent = 'Player 2' : playerName.textContent = 'Player 1';
+    }
 
-        markPlaces.forEach(markPlace => markPlace.addEventListener('click', () => {
-            if(player1.isMyTurn) {
-                const canCantinue = player1.playTurn(markPlace.id); 
-                if(canCantinue) {
-                    player1.isMyTurn = false; 
-                    player2.isMyTurn = true;    
+    // next player
+    function nextPlayer() {
+        this.activePlayer === playerOne ? this.activePlayer = playerTwo : this.activePlayer = playerOne;
+    }
+
+    // declare tie
+    function declareTie() {
+        subtext.innerHTML = "<b>Tie game!</b>";
+    }
+
+    return {
+        activePlayer,
+        remainingSpots,
+        checkWinner,
+        alertNextPlayer,
+        nextPlayer,
+        declareTie,
+        winnerDeclared
+    };
+})();
+
+const gameBoard = (() => {
+    let board = ['','','','','','','','',''];
+
+    const squares = document.querySelector('.squares');
+
+    board.forEach(() => {
+        const square = document.createElement('div');
+        square.className = 'square';
+        squares.appendChild(square);
+    })
+
+    game.alertNextPlayer();
+
+    Array.from(squares.children).forEach((square,index) => {
+        square.addEventListener('click', () => {
+            square.textContent = game.activePlayer.marker;
+
+            board[index] = game.activePlayer.marker;
+            
+            square.style.pointerEvents = 'none';
+            
+            game.remainingSpots -= 1;
+            
+            game.checkWinner();
+            
+            if (game.winnerDeclared == false) {
+                if (game.remainingSpots > 0) {
+                    game.alertNextPlayer();
+                    game.nextPlayer();
+                } else if (game.remainingSpots == 0) {
+                    game.declareTie();
                 }
             }
-            else if(player2.isMyTurn) {
-                const canCantinue = player2.playTurn(markPlace.id); 
-                if(canCantinue) {
-                    player2.isMyTurn = false; 
-                    player1.isMyTurn = true;    
-                }
-            };
-            displayController.displayGameBoard();
-            testIfGameEnded();
-        })); 
-    };
-
-    const clear = () => gameBoardArray = ["","","","","","","","",""];
-    return {gameBoardArray, mark, clear, waitForMarking};
+            else {
+                Array.from(squares.children).forEach((square, index) => {square.style.pointerEvents = 'none'});
+            }
+        });
+    });
+    
+    return {board};
 })();
-
-const displayController = (() => {
-    const displayGameBoard = () => {
-        for(i in gameBoard.gameBoardArray) {
-            const markPlace = document.getElementById(`${Number(i)+1}`);
-            markPlace.textContent = gameBoard.gameBoardArray[i];
-        }
-    };
-
-    // const clearGameboard = () => {
-    //     const resetButton = document.querySelector('#restart_button');
-    //     resetButton.addEventListener('click', () => {
-    //         console.log("HAAAAAAAAa")
-    //         gameBoard.clear();
-    //         displayGameBoard();    
-    //     });
-    // }
-
-    return {displayGameBoard};
-})();
-
-const Player = (sideChoice, isMyTurn) => { 
-    const playTurn = (indexOfMark) => {
-        return gameBoard.mark(sideChoice, indexOfMark);
-    };
-
-    return {sideChoice: sideChoice, playTurn: playTurn, isMyTurn: isMyTurn};
-}
-
-function playGame() {
-    const player1 = Player('x', true);
-    const player2 = Player('o', false);
-    displayController.displayGameBoard();    
-    gameBoard.waitForMarking(player1, player2);
-}
-
-playGame();
